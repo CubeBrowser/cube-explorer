@@ -39,7 +39,7 @@ class Cube(Element):
     """
 
     group = param.String(default='Cube')
-    
+
     def __init__(self, data, **params):
         if not isinstance(data, iris.cube.Cube):
             raise TypeError('Cube data must be of Iris Cube type.')
@@ -57,8 +57,7 @@ class Cube(Element):
         else:
             coords = data.dim_coords
             coords = sorted(coords, key=sort_coords)
-        params['kdims'] = [coord_to_dimension(coord)
-                           for coord in coords]
+        params['kdims'] = [coord_to_dimension(crd) for crd in coords]
         if 'vdims' not in params:
             params['vdims'] = [Dimension(data.name(), unit=str(data.units))]
         super(Cube, self).__init__(data, **params)
