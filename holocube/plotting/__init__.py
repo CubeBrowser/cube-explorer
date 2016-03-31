@@ -69,6 +69,8 @@ class GeoPlot(ElementPlot):
         if an integer number of ticks is supplied and setting a
         rotation for the ticks.
         """
+        cylindrical = isinstance(axis.axes.projection,
+                                 crs._CylindricalProjection)
         if axis.axis_name == 'x':
             set_fn = axis.axes.set_xticks
             low, high = axis.axes.get_xlim()
@@ -82,11 +84,12 @@ class GeoPlot(ElementPlot):
             axis.set_major_locator(ticks)
         elif not ticks and ticks is not None:
             axis.set_ticks([])
-        elif isinstance(ticks, int):
-            axis.set_major_formatter(formatter)
+        elif isinstance(ticks, int) and cylindrical:
+            if cylindrical:
+                axis.set_major_formatter(formatter)
             ticks = list(np.linspace(low, high, ticks))
             set_fn(ticks, crs=crs.PlateCarree())
-        elif isinstance(ticks, (list, tuple)):
+        elif isinstance(ticks, (list, tuple)) and cylindrical:
             labels = None
             if all(isinstance(t, tuple) for t in ticks):
                 ticks, labels = zip(*ticks)
