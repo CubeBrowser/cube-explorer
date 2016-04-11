@@ -1,8 +1,12 @@
 import copy
 
 import param
+import numpy as np
 import iris.plot as iplt
+
+from matplotlib import ticker
 from cartopy import crs
+from cartopy.mpl.ticker import LongitudeFormatter, LatitudeFormatter
 from holoviews.core import Store, HoloMap
 from holoviews.plotting.mpl import (ElementPlot, ColorbarPlot, PointPlot,
                                     OverlayPlot, AnnotationPlot, TextPlot)
@@ -11,29 +15,109 @@ from ..element import (Contours, Image, Points, GeoFeature,
                        WMTS, GeoTiles, Text, util)
 
 
+def transform_extents(element, proj, extents):
+    geo_dims = element.dimensions(label=True)[0:2]
+    if not getattr(element, 'crs') or len(geo_dims) != 2:
+        return extents
+    l, b, r, t = extents
+    if type(proj) != type(element.crs):
+        try:
+            l, b = proj.transform_point(l, b, src_crs=element.crs)
+        except:
+            l, b = None, None
+        try:
+            r, t = proj.transform_point(r, t, src_crs=element.crs)
+        except:
+            r, t = None, None
+    if isinstance(proj, crs._CylindricalProjection):
+        l, r = l-180, r-180
+    return l, b, r, t
+
+
 class GeoPlot(ElementPlot):
     """
     Plotting baseclass for geographic plots with a cartopy projection.
     """
 
+    aspect = param.ClassSelector(default='equal',
+                                 class_=(util.basestring, float, int))
+
     projection = param.Parameter(default=crs.PlateCarree())
-    
+
+    show_grid = param.Boolean(default=False)
+
     def __init__(self, element, **params):
         if 'projection' not in params:
             el = element.last if isinstance(element, HoloMap) else element
             params['projection'] = el.crs
         super(GeoPlot, self).__init__(element, **params)
-        self.aspect = 'equal'
-        self.apply_ranges = False
+
+
+    def get_extents(self, view, ranges):
+        """
+        Gets the extents for the axes from the current View. The globally
+        computed ranges can optionally override the extents.
+        """
+        extents = super(GeoPlot, self).get_extents(view, ranges)
+        return transform_extents(view, self.handles['axis'].projection, extents)
+
+
+    def _set_axis_ticks(self, axis, ticks, log=False, rotation=0):
+        """
+        Allows setting the ticks for a particular axis either with
+        a tuple of ticks, a tick locator object, an integer number
+        of ticks, a list of tuples containing positions and labels
+        or a list of positions. Also supports enabling log ticking
+        if an integer number of ticks is supplied and setting a
+        rotation for the ticks.
+        """
+        cylindrical = isinstance(axis.axes.projection,
+                                 crs._CylindricalProjection)
+        if axis.axis_name == 'x':
+            set_fn = axis.axes.set_xticks
+            low, high = axis.axes.get_xlim()
+            formatter = LongitudeFormatter(number_format='.3g')
+        else:
+            set_fn = axis.axes.set_yticks
+            low, high = axis.axes.get_ylim()
+            formatter = LatitudeFormatter(number_format='.3g')
+
+        if isinstance(ticks, ticker.Locator):
+            axis.set_major_locator(ticks)
+        elif not ticks and ticks is not None:
+            axis.set_ticks([])
+        elif isinstance(ticks, int) and cylindrical:
+            if cylindrical:
+                axis.set_major_formatter(formatter)
+            ticks = list(np.linspace(low, high, ticks))
+            set_fn(ticks, crs=crs.PlateCarree())
+        elif isinstance(ticks, (list, tuple)) and cylindrical:
+            labels = None
+            if all(isinstance(t, tuple) for t in ticks):
+                ticks, labels = zip(*ticks)
+            set_fn(ticks, crs=crs.PlateCarree())
+            if labels:
+                axis.set_ticklabels(labels)
+            else:
+                axis.set_major_formatter(formatter)
+
+        if ticks:
+            for tick in axis.get_ticklabels():
+                tick.set_rotation(rotation)
+
 
     def teardown_handles(self):
         """
-        Until cartopy artists can be updated directly
-        the bottom layer clears the axis.
+        Removes artist from figure so it can be redrawn.
+        Some plots clear entire axis, so ValueErrors are
+        caught in case the object has already been removed.
         """
-        if self.zorder == 0:
-            self.handles['axis'].cla()
-    
+        if 'artist' in self.handles:
+            try:
+                self.handles['artist'].remove()
+            except ValueError:
+                pass
+
 
 class GeoContourPlot(GeoPlot, ColorbarPlot):
     """
@@ -55,6 +139,14 @@ class GeoContourPlot(GeoPlot, ColorbarPlot):
         else:
             style['levels'] = self.levels
         return args, style, {}
+
+    def teardown_handles(self):
+        """
+        Until cartopy artists can be updated directly
+        the bottom layer clears the axis.
+        """
+        if self.zorder == 0:
+            self.handles['axis'].cla()
 
     def init_artists(self, ax, plot_args, plot_kwargs):
         plotfn = iplt.contourf if self.filled else iplt.contour
