@@ -25,7 +25,7 @@ Support
 _______
 
 HoloCube was developed through a collaboration between
-`Continuum Analytics <https://continuum.io>`_ and the `UK Metropolitan Office
+`Continuum Analytics <https://continuum.io>`_ and the `UK Met Office
 <http://www.metoffice.gov.uk>`_.  HoloCube is completely `open source
 <https://github.com/ioam/holoviews>`_, available under a BSD license
 freely for both commercial and non-commercial use.  Please file
