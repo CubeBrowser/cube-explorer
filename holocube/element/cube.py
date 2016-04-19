@@ -156,7 +156,7 @@ class CubeInterface(GridColumns):
         break up a high-dimensional HoloCube into smaller viewable chunks.
         """
         if not isinstance(dims, list): dims = [dims]
-        dynamic = kwargs.get('dynamic', False)
+        dynamic = kwargs.pop('dynamic', False)
         dims = [holocube.get_dimension(d) for d in dims]
         constraints = [d.name for d in dims]
         slice_dims = [d for d in holocube.kdims if d not in dims]
