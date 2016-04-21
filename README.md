@@ -5,6 +5,12 @@
 
 # cube-explorer
 
+The code base here is frozen, the resulting projects are available here:
+
+* https://github.com/ioam/holoviews
+* https://github.com/ioam/geoviews
+* https://github.com/SciTools/cube_browser
+
 
 Exploration and visualization of https://github.com/SciTools/iris cubes in a web browser, including a Jupyter notebook.
 
