@@ -27,6 +27,14 @@ class HoloCube(Columns):
     group = param.String(default='HoloCube')
 
     @property
+    def cube(self):
+        " Returns the underlying iris Cube if available. "
+        if issubclass(self.interface, CubeConversion):
+            return self.data
+        else:
+            return None
+
+    @property
     def to(self):
         """
         Property to create a conversion table with methods to convert
