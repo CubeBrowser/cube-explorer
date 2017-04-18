@@ -146,6 +146,15 @@ class GeoImagePlot(GeoPlot, ColorbarPlot):
     def init_artists(self, ax, plot_args, plot_kwargs):
         return {'artist': iplt.pcolormesh(*plot_args, axes=ax, **plot_kwargs)}
 
+    def update_handles(self, key, axis, element, ranges, style):
+        cmesh = self.handles['artist']
+        data, style, axis_kwargs = self.get_data(element, ranges, style)
+        cmesh.set_array(data[-1].data.flatten())
+        cmesh.set_clim((style['vmin'], style['vmax']))
+        if 'norm' in style:
+            cmesh.norm = style['norm']
+
+
 
 
 class GeoPointPlot(GeoPlot, PointPlot):
@@ -183,6 +192,9 @@ class GeoFeaturePlot(GeoPlot):
 
     def init_artists(self, ax, plot_args, plot_kwargs):
         return {'artist': ax.add_feature(*plot_args, **plot_kwargs)}
+
+    def update_handles(self, key, axis, element, ranges, style):
+        pass
 
 
 
